@@ -18,7 +18,7 @@ class DetailViewController : UIViewController{
     @IBOutlet weak var phoneLabel: UILabel!
     
     @IBOutlet weak var universityLabel: UILabel!
-    @IBOutlet weak var dateLabel: UILabel!
+    @IBOutlet weak var genderLabel: UILabel!
     @IBOutlet weak var idLabel: UILabel!
     
     override func viewWillAppear(_ animated: Bool) {
@@ -29,7 +29,8 @@ class DetailViewController : UIViewController{
          guard let user = user else {
             return
         }
-        AF.request("http://192.168.1.12:8080/api/user/detail?name=\(user.name)").responseJSON { response in
+        let name = user.name.replacingOccurrences(of: " ", with: "%20")
+        AF.request("http://spring-user.herokuapp.com/api/user/detail?name=\(name)").responseJSON { response in
             if let error = response.error{
                 self.presentError(error)
             }
@@ -37,8 +38,26 @@ class DetailViewController : UIViewController{
             if let data = response.data {
                    do{
                     let user = try JSONDecoder().decode(UserDetails.self, from: data)
+                    self.roleImage.image = user.role.image
                     self.nameLabel.text = user.name
-                
+                    self.roleLabel.text = user.role.rawValue
+                    if let email = user.email{
+                        self.emailLabel.text = "e-mail: \(email)"
+                    }else{
+                        self.emailLabel.text = "e-mail: has not been provided"
+                    }
+                    if let phoneNumber = user.phoneNumber {
+                        self.phoneLabel.text = "phone nr: \(String(phoneNumber))"
+                    }else{
+                        self.phoneLabel.text = "phone has not been provided"
+                    }
+                    self.universityLabel.text = "university: \(user.university)"
+                    if let gender = user.gender {
+                        self.genderLabel.text = "gender: \(gender)"
+                    }else{
+                        self.genderLabel.text = "gender: has not been provided"
+                    }
+                    self.idLabel.text = "id: \(String(user.id))"
                 }catch {
                     self.presentError(error)
                 }

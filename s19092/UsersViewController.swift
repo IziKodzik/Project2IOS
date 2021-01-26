@@ -7,14 +7,38 @@
 
 import UIKit
 import Alamofire
-class UsersViewController: UITableViewController{
+class UsersViewController: UITableViewController, UISearchResultsUpdating{
+   
+    
+    var filteredUsers: [User] = []
+    var resultSearchController = UISearchController()
+    
+    func updateSearchResults(for searchController: UISearchController) {
+        filteredUsers.removeAll(keepingCapacity:false)
+        if let text = searchController.searchBar.text {
+            let filteredUsers = loadedUsers.filter({$0.name.prefix(text.count) == text})
+            self.filteredUsers = filteredUsers
+        }
+        tableView.reloadData()
+    }
+    
 
     
     var loadedUsers: [User] = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.tableView.backgroundColor = UIColor.black
+        self.resultSearchController = ({
+            let controller = UISearchController(searchResultsController: nil)
+            controller.isActive = false
+            controller.searchResultsUpdater = self
+            controller.searchBar.sizeToFit()
+            controller.obscuresBackgroundDuringPresentation = true
+            tableView.tableHeaderView = controller.searchBar
+            
+            return controller
+        })()
+        tableView.reloadData()
     }
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
@@ -26,7 +50,7 @@ class UsersViewController: UITableViewController{
         reloadUsers()
     }
     func reloadUsers(){
-        AF.request("http://192.168.1.12:8080/api/user/all").responseJSON { response in
+        AF.request("https://spring-user.herokuapp.com/api/user/all").responseJSON { response in
             if let error = response.error{
                 self.presentError(error)
             }
@@ -52,14 +76,24 @@ class UsersViewController: UITableViewController{
 
     }
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int)-> Int{
+        if(resultSearchController.isActive){
+            return filteredUsers.count
+        }
         return loadedUsers.count
     }
-    
+    override func numberOfSections(in tableView: UITableView) -> Int {
+        return 1
+    }
     override func tableView
         (_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell{
         let cell = tableView.dequeueReusableCell(withIdentifier: "UserCell", for: indexPath) as! UserTableCell
-        cell.nameLabel.text = loadedUsers[indexPath.row].name
-        cell.roleLabel.text = loadedUsers[indexPath.row].role
+        if !resultSearchController.isActive {
+            cell.nameLabel.text = loadedUsers[indexPath.row].name
+            cell.roleLabel.text = loadedUsers[indexPath.row].role
+        }else{
+            cell.nameLabel.text = filteredUsers[indexPath.row].name
+            cell.roleLabel.text = filteredUsers[indexPath.row].role
+        }
         return cell
                 
     }
@@ -82,6 +116,9 @@ class UsersViewController: UITableViewController{
         
     }
 }
+
+
+
 
 class UserTableCell : UITableViewCell {
 
